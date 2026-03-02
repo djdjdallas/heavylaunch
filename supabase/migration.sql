@@ -117,9 +117,45 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 -- ============================================
+-- Replies table (Reply Mode — reactive content)
+-- ============================================
+create table replies (
+  id uuid default gen_random_uuid() primary key,
+  product_id uuid references products on delete cascade not null,
+  user_id uuid references auth.users on delete cascade not null,
+  thread_url text,
+  thread_title text,
+  thread_content text not null,
+  subreddit text,
+  generated_reply text not null,
+  status text default 'pending' check (status in ('pending', 'used', 'skipped')),
+  created_at timestamptz default now()
+);
+
+alter table replies enable row level security;
+
+create policy "Users can view own replies"
+  on replies for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own replies"
+  on replies for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own replies"
+  on replies for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete own replies"
+  on replies for delete
+  using (auth.uid() = user_id);
+
+-- ============================================
 -- Indexes for common queries
 -- ============================================
 create index idx_products_user_id on products(user_id);
 create index idx_posts_product_id on posts(product_id);
 create index idx_posts_user_id on posts(user_id);
 create index idx_posts_status on posts(status);
+create index idx_replies_user_id on replies(user_id);
+create index idx_replies_product_id on replies(product_id);

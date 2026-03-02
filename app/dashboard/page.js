@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import ProductCard from "@/components/ProductCard";
 import PlanBadge from "@/components/PlanBadge";
-import { Plus, Package, Target, Settings, LogOut } from "lucide-react";
+import { Plus, Package, Target, Settings, LogOut, MessageSquareReply } from "lucide-react";
 
 export default function DashboardPage() {
   const [user, setUser] = useState(null);
@@ -112,6 +112,12 @@ export default function DashboardPage() {
             <span className="font-bold text-lg">ThreadPilot</span>
           </Link>
           <div className="flex items-center gap-3">
+            <Link href="/dashboard/reply">
+              <Button variant="ghost" size="sm" className="gap-1.5">
+                <MessageSquareReply className="h-4 w-4" />
+                <span className="hidden sm:inline">Reply Mode</span>
+              </Button>
+            </Link>
             <Link href="/settings">
               <Button variant="ghost" size="icon">
                 <Settings className="h-4 w-4" />
@@ -166,6 +172,30 @@ export default function DashboardPage() {
                   </Button>
                 </Link>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Reply Mode CTA */}
+        <Card className="mb-8 border-green-200 bg-green-50/30">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
+                  <MessageSquareReply className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Reply Mode</p>
+                  <p className="text-xs text-muted-foreground">
+                    Found a relevant Reddit thread? Generate a reply that naturally promotes your product.
+                  </p>
+                </div>
+              </div>
+              <Link href="/dashboard/reply">
+                <Button size="sm" variant="outline" className="border-green-200 text-green-700 hover:bg-green-50">
+                  Open Reply Mode
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

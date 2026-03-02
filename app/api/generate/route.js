@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createAdminSupabaseClient, createBrowserSupabaseClient } from "@/lib/supabase";
-import { getOpenAI } from "@/lib/openai";
+import { createAdminSupabaseClient } from "@/lib/supabase";
+import { getAnthropic } from "@/lib/anthropic";
 import { getPlanLimits } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
 
@@ -31,7 +31,7 @@ For each post return a JSON object with:
 - why_this_subreddit: one sentence explaining why this community fits
 - best_time_to_post: best day and time window (e.g. Tuesday 9-11am EST)
 
-Return a valid JSON array of ${count} objects and nothing else.`;
+Return a valid JSON array of ${count} objects and nothing else. No markdown fences, no explanation — just the JSON array.`;
 }
 
 export async function POST(request) {
@@ -77,7 +77,6 @@ export async function POST(request) {
 
     if (!userId) {
       // Fallback: look up the product to get user_id
-      // This is safe because we still verify ownership below
       const { data: productCheck } = await adminSupabase
         .from("products")
         .select("user_id")
@@ -129,19 +128,19 @@ export async function POST(request) {
       );
     }
 
-    // Call OpenAI to generate posts
-    const openai = getOpenAI();
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+    // Call Claude to generate posts
+    const anthropic = getAnthropic();
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4096,
+      system: SYSTEM_PROMPT,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: buildUserPrompt(product, postsToGenerate) },
       ],
       temperature: 0.8,
-      response_format: { type: "json_object" },
     });
 
-    const responseText = completion.choices[0]?.message?.content;
+    const responseText = message.content[0]?.text;
     if (!responseText) {
       return NextResponse.json(
         { error: "AI failed to generate posts" },
@@ -152,7 +151,9 @@ export async function POST(request) {
     // Parse the AI response — handle both array and wrapped object formats
     let generatedPosts;
     try {
-      const parsed = JSON.parse(responseText);
+      // Strip any markdown fences Claude might add
+      const cleaned = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const parsed = JSON.parse(cleaned);
       generatedPosts = Array.isArray(parsed) ? parsed : parsed.posts || Object.values(parsed)[0];
       if (!Array.isArray(generatedPosts)) {
         throw new Error("Expected an array of posts");
